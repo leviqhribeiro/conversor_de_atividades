@@ -20,6 +20,23 @@ url = ""
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
+# Definindo possíveis nomes de colunas
+possiveis_nomes_colunas = {
+    "Atividade": ["Nome da Tarefa", "Atividade", "Tarefa"],
+    "Data de Inicio": ["Início", "Data de Inicio", "Data Inicial", "Data a ser Iniciada"],
+    "Data de Termino": ["Término", "Data de Termino", "Data Final", "Data a ser Concluida"]
+}
+
+# Função para renomear colunas do DataFrame
+def renomear_colunas(df, possiveis_nomes_colunas):
+    nova_colunas = {}
+    for nome_padrao, nomes_alternativos in possiveis_nomes_colunas.items():
+        for nome in nomes_alternativos:
+            if nome in df.columns:
+                nova_colunas[nome] = nome_padrao
+                break
+    return df.rename(columns=nova_colunas)
+
 # Função para extrair as datas de início e término do PDF
 def extrair_datas(caminho_pdf):
     atividades, data_inicio, data_termino = [], [], []
@@ -29,10 +46,11 @@ def extrair_datas(caminho_pdf):
                 tabela = pagina.extract_table()
                 if tabela:
                     df = pd.DataFrame(tabela[1:], columns=tabela[0])
-                    if 'Atividade' in df.columns and 'Data de Inicio' in df.columns and 'Data Termino' in df.columns:
+                    df = renomear_colunas(df, possiveis_nomes_colunas)
+                    if 'Atividade' in df.columns and 'Data de Inicio' in df.columns and 'Data de Termino' in df.columns:
                         atividades.extend(df['Atividade'].dropna().tolist())
                         data_inicio.extend(df['Data de Inicio'].dropna().tolist())
-                        data_termino.extend(df['Data Termino'].dropna().tolist())
+                        data_termino.extend(df['Data de Termino'].dropna().tolist())
             except Exception as e:
                 print(f"Erro ao processar a página: {e}")
     return atividades, data_inicio, data_termino
@@ -40,14 +58,14 @@ def extrair_datas(caminho_pdf):
 # Função para calcular os dias de atividade e repetir o nome da atividade
 def calcular_dias_atividade(df):
     df['Data de Inicio'] = pd.to_datetime(df['Data de Inicio'], format='%d/%m/%Y')
-    df['Data Termino'] = pd.to_datetime(df['Data Termino'], format='%d/%m/%Y')
-    df['Dias de Atividade'] = (df['Data Termino'] - df['Data de Inicio']).dt.days + 1
+    df['Data de Termino'] = pd.to_datetime(df['Data de Termino'], format='%d/%m/%Y')
+    df['Dias de Atividade'] = (df['Data de Termino'] - df['Data de Inicio']).dt.days + 1
     df_repetida = pd.DataFrame()
     for _, row in df.iterrows():
         df_temp = pd.DataFrame({
             'Atividade': [row['Atividade']] * row['Dias de Atividade'],
             'Data de Inicio': [row['Data de Inicio']] * row['Dias de Atividade'],
-            'Data Termino': [row['Data Termino']] * row['Dias de Atividade']
+            'Data de Termino': [row['Data de Termino']] * row['Dias de Atividade']
         })
         df_repetida = pd.concat([df_repetida, df_temp], ignore_index=True)
     return df_repetida
@@ -75,7 +93,7 @@ if arquivo_pedido is not None:
                 dias_de_atividade = pd.DataFrame({
                     'Atividade': atividades,
                     'Data de Inicio': data_inicio,
-                    'Data Termino': data_termino
+                    'Data de Termino': data_termino
                 })
                 dias_de_atividade = calcular_dias_atividade(dias_de_atividade)
                 st.dataframe(dias_de_atividade)
@@ -94,7 +112,8 @@ if arquivo_pedido is not None:
     elif arquivo_pedido.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
         with st.spinner('Processando arquivo Excel...'):
             df = pd.read_excel(arquivo_pedido)
-            if 'Atividade' in df.columns and 'Data de Inicio' in df.columns and 'Data Termino' in df.columns:
+            df = renomear_colunas(df, possiveis_nomes_colunas)
+            if 'Atividade' in df.columns and 'Data de Inicio' in df.columns and 'Data de Termino' in df.columns:
                 df = calcular_dias_atividade(df)
                 st.dataframe(df)
                 
@@ -107,7 +126,7 @@ if arquivo_pedido is not None:
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
             else:
-                st.error("As colunas 'Atividade', 'Data de Inicio' e/ou 'Data Termino' não foram encontradas no arquivo Excel.")
+                st.error("As colunas 'Atividade', 'Data de Inicio' e/ou 'Data de Termino' não foram encontradas no arquivo Excel.")
     
     else:
         st.error("Tipo de arquivo não suportado. Por favor, carregue um arquivo PDF ou Excel.")
