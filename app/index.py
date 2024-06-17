@@ -6,7 +6,7 @@ import os
 from io import BytesIO
 
 # Configuração da página do Streamlit
-st.set_page_config(layout="wide", page_title="Alditar Engenharia")
+st.set_page_config(layout="wide", page_title="Auditar Engenharia")
 
 # Interface do usuário na barra lateral
 with st.sidebar:
