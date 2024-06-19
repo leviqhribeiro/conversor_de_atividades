@@ -76,14 +76,10 @@ def calcular_dias_atividade(df):
     return df_final
 
 # Função para converter DataFrame em um arquivo Excel
-def to_excel(df, sheet_name='Atividades'):
-    # Formatando a data para um nome de aba válido
-    if isinstance(sheet_name, pd.Timestamp) or isinstance(sheet_name, np.datetime64):
-        sheet_name = pd.to_datetime(sheet_name).strftime('%d-%m-%Y')
-    
+def to_excel(df, nome_da_planilha_principal= 'Atividades'):    
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name=sheet_name)
+    df.to_excel(writer, index=False, sheet_name= nome_da_planilha_principal)
     writer.save()
     processed_data = output.getvalue()
     return processed_data
@@ -92,8 +88,8 @@ def to_excel(df, sheet_name='Atividades'):
 if arquivo_atividades is not None:
     if arquivo_atividades.type == "application/pdf":
         with st.spinner('Processando arquivo PDF...'):
-            with open("temp.pdf", "wb") as f:
-                f.write(arquivo_atividades.read())
+            with open("temp.pdf", "wb") as arquivo_temporario:
+                arquivo_temporario.write(arquivo_atividades.read())
 
             atividades, data_inicio, data_termino = extrair_datas("temp.pdf")
             os.remove("temp.pdf")
@@ -118,7 +114,7 @@ if arquivo_atividades is not None:
                     atividades_data_selecionada = dias_de_atividade[dias_de_atividade['Data de Execução'] == data_selecionada]
 
                     # Adicionar botão de download
-                    excel_data = to_excel(atividades_data_selecionada, sheet_name=data_selecionada)
+                    excel_data = to_excel(atividades_data_selecionada)
                     st.download_button(
                         label=f"Download do arquivo Excel para {pd.to_datetime(data_selecionada).strftime('%d/%m/%Y')}",
                         data=excel_data,
@@ -137,9 +133,8 @@ if arquivo_atividades is not None:
                 st.dataframe(df)
 
                 # Convertendo a coluna 'Data de Execução' para datetime
-                df['Data de Execução'] = pd.to_datetime(df['Data de Execução'], format='%d/%m/%Y', errors='coerce')
+                df['Data de Execução'] = pd.to_datetime(df['Data de Execução'], format='%d/%m/%Y', errors='coerce', dayfirst=True)
                 df['Data de Execução'] = df['Data de Execução'].dt.strftime('%d/%m/%Y')
-
                 # Lista de datas únicas
                 datas_unicas = df['Data de Execução'].unique()
                 data_selecionada = st.selectbox('Selecione a data para download:', options=sorted(datas_unicas))
@@ -148,11 +143,11 @@ if arquivo_atividades is not None:
                     atividades_data_selecionada = df[df['Data de Execução'] == data_selecionada]
 
                     # Adicionar botão de download
-                    excel_data = to_excel(atividades_data_selecionada, sheet_name=data_selecionada)
+                    excel_data = to_excel(atividades_data_selecionada)
                     st.download_button(
-                        label=f"Download do arquivo Excel para {pd.to_datetime(data_selecionada).strftime('%d/%m/%Y')}",
+                        label=f"Download do arquivo Excel para {data_selecionada}",
                         data=excel_data,
-                        file_name=f'atividades_{pd.to_datetime(data_selecionada).strftime("%Y-%m-%d")}.xlsx',
+                        file_name=f'atividades_{data_selecionada.replace("/", "-")}.xlsx',
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                     )
             else:
