@@ -64,7 +64,7 @@ def calcular_dias_atividade(df):
             'Atividade': [row['Atividade']] * row['Dias de Atividade'],
             'Data Inicio': [row['Data Inicio']] * row['Dias de Atividade'],
             'Data Termino': [row['Data Termino']] * row['Dias de Atividade'],
-            'Data de Execução': [row['Data Inicio'] + pd.Timedelta(days=i) for i in range(row['Dias de Atividade'])],
+            'Data de Execução': [row['Data Inicio'] + pd.Timedelta(days=i) for i in range(row['Dias de Atividade'])]
         })
         df_final = pd.concat([df_final, df_temp], ignore_index=True)
 
@@ -105,6 +105,7 @@ if arquivo_atividades is not None:
 
                 # Convertendo a coluna 'Data de Execução' para datetime
                 dias_de_atividade['Data de Execução'] = pd.to_datetime(dias_de_atividade['Data de Execução'], format='%d/%m/%Y', errors='coerce')
+                dias_de_atividade['Data de Execução'] = dias_de_atividade['Data de Execução'].dt.strftime('%d/%m/%Y')
 
                 # Lista de datas únicas
                 datas_unicas = dias_de_atividade['Data de Execução'].unique()
@@ -116,9 +117,9 @@ if arquivo_atividades is not None:
                     # Adicionar botão de download
                     excel_data = to_excel(atividades_data_selecionada)
                     st.download_button(
-                        label=f"Download do arquivo Excel para {pd.to_datetime(data_selecionada).strftime('%d/%m/%Y')}",
+                        label=f"Download do arquivo Excel para {data_selecionada}",
                         data=excel_data,
-                        file_name=f'atividades_{pd.to_datetime(data_selecionada).strftime("%d-%m-%Y")}.xlsx',
+                        file_name=f'atividades_{data_selecionada.replace("/", "-")}.xlsx',
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                     )
             else:
